@@ -248,30 +248,44 @@ export default function Home() {
               </button>
             </div>
 
-            <div className="space-y-1.5 font-mono text-xs max-h-[360px] overflow-y-auto pr-1.5 custom-scrollbar">
+            <div className="space-y-2 max-h-[360px] overflow-y-auto pr-1.5 custom-scrollbar">
               {filteredIssues.map((issue, idx) => {
                 const isSelected = currentIssue.id === issue.id;
+                const rawName = issue.koreanName || issue.lawName;
+                const [badgeText, ...rest] = rawName.includes(':') 
+                  ? rawName.split(':') 
+                  : [issue.jurisdiction === 'DOMESTIC' ? '국내 법령' : '글로벌 규제', rawName];
+                const detailTitle = rest.join(':').trim() || rawName;
+
                 return (
                   <div key={issue.id}>
                     <div
                       onClick={() => setSelectedIndex(idx)}
-                      className={`flex items-center justify-between p-2.5 rounded-lg border cursor-pointer transition-all ${
+                      className={`p-2.5 rounded-lg border cursor-pointer transition-all ${
                         isSelected
-                          ? 'bg-[#fafaf9] border-[#e8e6e5] shadow-xs ring-1 ring-[#e8e6e5]'
-                          : 'border-transparent hover:bg-[#fafaf9] hover:border-[#e8e6e5]'
+                          ? 'bg-[#fafaf9] border-[#e8e6e5] shadow-xs ring-1 ring-[#0c0a09]/10'
+                          : 'bg-white border-[#f0eeec] hover:bg-[#fafaf9] hover:border-[#e8e6e5]'
                       }`}
                     >
-                      <div className="flex items-center gap-1.5 overflow-hidden">
-                        <ChevronRight className={`w-3.5 h-3.5 shrink-0 transition-transform ${isSelected ? 'text-[#0c0a09]' : 'text-[#a8a29e]'}`} />
-                        <span className={`truncate ${isSelected ? 'text-[#0c0a09] font-medium' : 'text-[#78716c]'}`}>
-                          {issue.koreanName || issue.lawName}
+                      {/* 상단: 법령 배지 & 관할/상태 */}
+                      <div className="flex items-center justify-between mb-1.5">
+                        <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded bg-[#f4f4f5] text-[#0c0a09] font-sans">
+                          {badgeText.trim()}
                         </span>
+                        <div className="flex items-center gap-1.5 shrink-0">
+                          <span className="text-[9px] px-1 py-0.2 rounded bg-[#f4f4f5] text-[#78716c] font-sans">
+                            {issue.jurisdiction === 'DOMESTIC' ? '국내' : '글로벌'}
+                          </span>
+                          {getStatusDot(issue.status)}
+                        </div>
                       </div>
-                      <div className="flex items-center gap-1.5 shrink-0">
-                        <span className="text-[9px] px-1 py-0.2 rounded bg-[#f4f4f5] text-[#78716c]">
-                          {issue.jurisdiction === 'DOMESTIC' ? '국내' : '글로벌'}
+
+                      {/* 하단: 핵심 내용 (말줄임 없이 전문 2줄 줄바꿈) */}
+                      <div className="flex items-start gap-1.5">
+                        <ChevronRight className={`w-3.5 h-3.5 shrink-0 mt-0.5 transition-transform ${isSelected ? 'text-[#3ba6f1]' : 'text-[#a8a29e]'}`} />
+                        <span className={`text-xs break-keep leading-snug font-sans ${isSelected ? 'text-[#0c0a09] font-semibold' : 'text-[#57534e]'}`}>
+                          {detailTitle}
                         </span>
-                        {getStatusDot(issue.status)}
                       </div>
                     </div>
 
@@ -282,7 +296,7 @@ export default function Home() {
                           e.stopPropagation();
                           setModalIssue(issue);
                         }}
-                        className="mt-1 ml-4 w-[calc(100%-1rem)] flex items-center justify-center gap-1 bg-[#fffbeb] border border-[#fef3c7] hover:bg-[#fef3c7] text-[#b45309] text-[10px] py-1 rounded transition-colors font-sans"
+                        className="mt-1 ml-3 w-[calc(100%-0.75rem)] flex items-center justify-center gap-1 bg-[#fffbeb] border border-[#fef3c7] hover:bg-[#fef3c7] text-[#b45309] text-[10px] py-1 rounded transition-colors font-sans"
                       >
                         <HelpCircle className="w-3 h-3" />
                         판별 필요 (1문1답 확인)
