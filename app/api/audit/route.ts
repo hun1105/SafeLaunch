@@ -1,19 +1,29 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { auditWithGemini } from '@/lib/gemini-auditor';
+import { auditWithGemini, auditReadmeWithGemini } from '@/lib/gemini-auditor';
 import { getIssuesByTarget } from '@/lib/audit-data';
 import { AuditReport } from '@/lib/types';
 
 export async function POST(req: NextRequest) {
   try {
-    let target = '';
+    let body: any = {};
     try {
-      const body = await req.json();
-      target = body?.target || body?.url || '';
+      body = await req.json();
     } catch {
-      target = '';
+      body = {};
     }
 
+    const mode = body?.mode || 'url';
     const apiKey = process.env.GEMINI_API_KEY;
+
+    // A. README 문서 분석 모드
+    if (mode === 'readme') {
+      const readmeContent = body?.readmeContent || '';
+      const report = await auditReadmeWithGemini(readmeContent, apiKey);
+      return NextResponse.json(report);
+    }
+
+    // B. 웹 URL 감사 모드
+    const target = body?.target || body?.url || '';
 
     // 1. 유효한 HTTP URL이고 Gemini API 키가 존재할 경우: 실시간 크롤링 & AI 정밀 감사 실행
     if (apiKey && target.startsWith('http')) {

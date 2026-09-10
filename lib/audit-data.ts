@@ -654,3 +654,21 @@ export function getIssuesByTarget(target: string): AuditIssue[] {
 }
 
 export const DEFAULT_ISSUES = SAAS_ISSUES;
+
+export const PLAN_B_README_SAMPLE = `# Plan B - 서울 여행지 대체 추천 프로젝트 관광 API 모듈
+
+웹 서비스 구현 전에 한국관광공사 국문 관광정보 OpenAPI (TourAPI 4.0) 연결 및 기상청 날씨, TMap 보행자 경로 안내를 검증하는 패키지입니다.
+
+## 아키텍처 및 외부 연동 API
+- 한국관광공사 국문 관광정보 OpenAPI (KorService2, 공공누리 제1유형 출처표시 필수)
+- 기상청 단기예보 및 초단기실황 API (KMA_SERVICE_KEY)
+- SK open API TMAP 보행자 경로 안내 (TMAP_APP_KEY, 사용자 GPS 좌표 기반 소요시간 계산)
+- 서울시 실시간 도시데이터 (장소 혼잡도 실시간 수집)
+
+## 추천 알고리즘 방식
+- 외부 OpenAI / Claude 등 LLM(생성형 AI)을 일체 호출하지 않음
+- 공공데이터포털 실시간 응답값을 가중치 계산식으로 점수화하는 100% 결정론적 룰 알고리즘 (Zero-LLM)
+
+## 배포 인프라 및 운영 환경
+- Render.com 클라우드 호스팅 (미국 리전)
+- 비상업적 공모전 출품 프로토타입 (유료 결제 기능 없음, 외부 아웃링크 연동)`;
