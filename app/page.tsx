@@ -307,11 +307,6 @@ export default function Home() {
               })}
             </div>
           </div>
-
-          <div className="pt-3 border-t border-[#e8e6e5] mt-4 text-[11px] text-[#78716c] flex justify-between">
-            <span>Dual Core Engine</span>
-            <span className="font-mono text-[#0c0a09]">Korea & Global</span>
-          </div>
         </div>
 
         {/* 2단: 2. Problem Diagnosis (Diff Inspector) (6 cols) */}
