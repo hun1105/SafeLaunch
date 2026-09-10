@@ -323,3 +323,132 @@ ${trimmed.slice(0, 4000)}
     issues,
   };
 }
+
+// 4. URL + README 동시 교차 검증 하이브리드 감사 함수
+export async function auditHybridWithGemini(
+  targetUrl: string,
+  readmeContent: string,
+  apiKey?: string
+): Promise<AuditReport> {
+  const startTime = Date.now();
+  const normalizedUrl = (targetUrl || '').trim();
+  const normalizedReadme = (readmeContent || '').trim();
+
+  // Gemini API 키가 있는 경우: 라이브 크롤링과 기획서 교차 검증
+  if (apiKey && (normalizedUrl.startsWith('http') || normalizedReadme.length > 20)) {
+    try {
+      const crawl = normalizedUrl.startsWith('http')
+        ? await crawlTarget(normalizedUrl)
+        : { title: '', metaDesc: '', headings: [], cleanText: '', footerLinks: [] };
+
+      const prompt = `
+당신은 대한민국 IT 스타트업 및 글로벌 서비스 전문 수석 법률 감사관(Legal Compliance Officer)입니다.
+아래 분석 대상 프로젝트의 [실제 배포 웹사이트 크롤링 결과]와 [GitHub README / 아키텍처 명세서]를 상호 교차 검증(Cross-Verification)하여 전수 규제 감사를 수행하십시오.
+
+[1. 실제 배포 웹사이트 라이브 데이터]
+- URL: ${normalizedUrl || '미입력 (README 단독 분석)'}
+- 페이지 제목: ${crawl.title}
+- 메타 설명: ${crawl.metaDesc}
+- 감지된 푸터 약관/링크: ${crawl.footerLinks.length > 0 ? crawl.footerLinks.join(', ') : '전무함 (푸터 법적 고지 누락 가능성)'}
+- 본문 텍스트: ${crawl.cleanText}
+
+[2. 프로젝트 README 및 아키텍처 명세서]
+${normalizedReadme.slice(0, 3500) || '미입력 (라이브 웹 단독 분석)'}
+
+[교차 검증 및 감사 핵심 지침]
+1. 화면에 보이는 것(외부 표출)과 README에 적힌 내부 아키텍처(데이터 흐름, 외부 API 연동, 결제 등) 사이의 일치 및 불일치를 집중 분석하십시오.
+2. 예: 화면엔 추천 엔진이 있으나 README에 "Zero-LLM 결정론적 규칙"이라 명시되어 있다면, EU AI Act 위반 오탐을 방지하고 적법으로 판정하십시오.
+3. 예: README에 GPS 및 위치 데이터를 수집한다고 명시되어 있으나 화면 푸터에 위치정보이용약관이 없다면 [위치정보법 제9조/제19조 위반]으로 정확히 지적하십시오.
+4. 반드시 DOMESTIC(대한민국 법령)과 GLOBAL(GDPR, AI Act, MoR 등) 양측의 핵심 항목 8~10개를 균형 있게 전수 도출하십시오.
+
+[2단 자연어 설명 원칙]
+- 각 이슈마다 코드 블록 없이 자연어로만 완결되는 'wrongReason'(위반 사유: 왜 법률상 위반인가)과 'correctReason'(준수 기준: 어떻게 해야 적법한가)을 2~3문장으로 명확히 서술하십시오.
+- 회색지대가 남아 있다면 'isAmbiguous: true'로 지정하고 아키텍처 판별 1문1답('clarificationQuestion')을 제공하십시오.
+
+반드시 아래 JSON 스키마 규격으로만 응답하십시오:
+{
+  "overallScore": number (0~100 사이의 준수율 점수),
+  "grade": string ("GRADE A (STABLE)" | "GRADE B" | "GRADE C (HIGH RISK)"),
+  "issues": [
+    {
+      "id": string,
+      "lawName": string,
+      "koreanName": string,
+      "jurisdiction": "DOMESTIC" | "GLOBAL",
+      "status": "CRITICAL" | "WARNING" | "CAUTION" | "PASSED",
+      "tag": string,
+      "problemTitle": string,
+      "problemDesc": string,
+      "wrongReason": string,
+      "correctReason": string,
+      "penaltyText": string,
+      "solutionTitle": string,
+      "solutionDesc": [string],
+      "isAmbiguous": boolean,
+      "clarificationQuestion": string,
+      "clarificationOptions": [
+        { "label": string, "resolvedStatus": "PASSED" | "CRITICAL", "impactText": string }
+      ]
+    }
+  ]
+}
+`;
+
+      const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent?key=${apiKey}`;
+      const res = await fetch(endpoint, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          contents: [{ parts: [{ text: prompt }] }],
+          generationConfig: {
+            temperature: 0.0,
+            responseMimeType: 'application/json',
+          },
+        }),
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        const jsonText = data?.candidates?.[0]?.content?.parts?.[0]?.text;
+        if (jsonText) {
+          const parsed = JSON.parse(jsonText);
+          const targetTitle = normalizedUrl && normalizedReadme 
+            ? `${normalizedUrl} + README.md (Hybrid Cross-Audit)`
+            : normalizedUrl || 'README.md Spec';
+
+          return {
+            target: targetTitle,
+            overallScore: parsed.overallScore || 50,
+            grade: parsed.grade || 'GRADE B',
+            latencyMs: Date.now() - startTime,
+            isLiveAi: true,
+            issues: parsed.issues || [],
+          };
+        }
+      }
+    } catch (err) {
+      console.warn('[Hybrid Audit Failed, fallback]:', err);
+    }
+  }
+
+  // 폴백: URL 또는 README 기반 도메인 프리셋
+  const fallbackKey = normalizedUrl || normalizedReadme;
+  const issues = getIssuesByTarget(fallbackKey);
+  let score = 100;
+  issues.forEach((i) => {
+    if (i.status === 'CRITICAL') score -= 20;
+    else if (i.status === 'WARNING') score -= 12;
+    else if (i.status === 'CAUTION') score -= 6;
+  });
+
+  return {
+    target: normalizedUrl && normalizedReadme 
+      ? `${normalizedUrl} + README.md (Hybrid)`
+      : normalizedUrl || 'README.md',
+    overallScore: Math.max(0, score),
+    grade: score >= 80 ? 'GRADE A (STABLE)' : score >= 60 ? 'GRADE B' : 'GRADE C (HIGH RISK)',
+    latencyMs: Date.now() - startTime,
+    isLiveAi: false,
+    issues,
+  };
+}

@@ -27,8 +27,7 @@ export default function Home() {
   const [modalIssue, setModalIssue] = useState<AuditIssue | null>(null);
   const [isLiveAi, setIsLiveAi] = useState<boolean>(false);
   
-  // 입력 모드 ('url' | 'readme')
-  const [inputMode, setInputMode] = useState<'url' | 'readme'>('url');
+  // URL 및 README 통합 입력 상태
   const [readmeContent, setReadmeContent] = useState<string>('');
   const [attachedFileName, setAttachedFileName] = useState<string>('');
 
@@ -40,10 +39,6 @@ export default function Home() {
       const p = new URLSearchParams(window.location.search).get('filter');
       if (p === 'DOMESTIC' || p === 'GLOBAL' || p === 'ALL') {
         setJurisdictionFilter(p);
-      }
-      const m = new URLSearchParams(window.location.search).get('mode');
-      if (m === 'readme') {
-        setInputMode('readme');
       }
     }
   }, []);
@@ -76,17 +71,17 @@ export default function Home() {
   const currentScore = calculateScore();
 
   const handleRunAudit = async (customTarget?: string, customReadme?: string) => {
-    const targetToScan = customTarget || targetInput;
+    const targetToScan = customTarget !== undefined ? customTarget : targetInput;
     const readmeToScan = customReadme !== undefined ? customReadme : readmeContent;
 
-    if (inputMode === 'url' && !targetToScan.trim()) return;
-    if (inputMode === 'readme' && !readmeToScan.trim()) return;
+    if (!targetToScan.trim() && !readmeToScan.trim()) return;
 
     setIsScanning(true);
     try {
-      const payload = inputMode === 'readme'
-        ? { mode: 'readme', readmeContent: readmeToScan }
-        : { mode: 'url', target: targetToScan };
+      const payload = {
+        target: targetToScan.trim(),
+        readmeContent: readmeToScan.trim(),
+      };
 
       const res = await fetch('/api/audit', {
         method: 'POST',
@@ -108,7 +103,7 @@ export default function Home() {
 
   const handleSelectSample = (sampleUrl: string) => {
     setTargetInput(sampleUrl);
-    handleRunAudit(sampleUrl);
+    handleRunAudit(sampleUrl, undefined);
   };
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -197,168 +192,166 @@ export default function Home() {
         </nav>
       </header>
 
-      {/* Seline Command Bar / Mode Switcher */}
-      <div className="my-4">
-        {/* 모드 선택 탭: 웹 URL 감사 vs README 문서 분석 */}
-        <div className="flex items-center gap-2 mb-2.5">
-          <button
-            type="button"
-            onClick={() => setInputMode('url')}
-            className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all flex items-center gap-1.5 ${
-              inputMode === 'url'
-                ? 'bg-[#0c0a09] text-white shadow-xs'
-                : 'bg-white border border-[#e8e6e5] text-[#78716c] hover:text-[#0c0a09]'
-            }`}
-          >
-            <Globe className="w-3.5 h-3.5 text-[#3ba6f1]" />
-            웹 URL 감사 (Live Web)
-          </button>
-          <button
-            type="button"
-            onClick={() => setInputMode('readme')}
-            className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all flex items-center gap-1.5 ${
-              inputMode === 'readme'
-                ? 'bg-[#0c0a09] text-white shadow-xs'
-                : 'bg-white border border-[#e8e6e5] text-[#78716c] hover:text-[#0c0a09]'
-            }`}
-          >
-            <FileText className="w-3.5 h-3.5 text-[#3ba6f1]" />
-            README 파일 / 기획서 분석 (Markdown)
-          </button>
+      {/* Seline Unified Target Workspace (URL + README 동시 지원) */}
+      <div className="my-4 bg-white border border-[#e8e6e5] rounded-xl p-3.5 shadow-sm space-y-3">
+        {/* 상단 안내 & 상태 배지 */}
+        <div className="flex flex-wrap items-center justify-between gap-2 pb-2.5 border-b border-[#f0eeec]">
+          <div className="flex items-center gap-2">
+            <span className="text-xs font-bold text-[#0c0a09] flex items-center gap-1.5">
+              <Sparkles className="w-3.5 h-3.5 text-[#3ba6f1]" />
+              통합 컴플라이언스 대상 입력 (Dual-Source Workspace)
+            </span>
+            <span className="text-[11px] text-[#78716c]">
+              (배포 URL과 README 중 하나만 있어도 되며, 둘 다 입력 시 교차 검증)
+            </span>
+          </div>
+
+          <div className="flex items-center gap-2">
+            {targetInput.trim() && readmeContent.trim() ? (
+              <span className="px-2 py-0.5 rounded-full bg-[#eff6ff] text-[#1e40af] border border-[#bfdbfe] text-[10px] font-mono font-medium">
+                하이브리드 교차 검증 활성 (정밀도 극대화)
+              </span>
+            ) : targetInput.trim() ? (
+              <span className="px-2 py-0.5 rounded-full bg-[#f4f4f5] text-[#0c0a09] border border-[#e8e6e5] text-[10px] font-mono">
+                웹 라이브 단독 모드
+              </span>
+            ) : readmeContent.trim() ? (
+              <span className="px-2 py-0.5 rounded-full bg-[#f4f4f5] text-[#0c0a09] border border-[#e8e6e5] text-[10px] font-mono">
+                README 기획서 단독 모드
+              </span>
+            ) : null}
+
+            {(targetInput || readmeContent) && (
+              <button
+                type="button"
+                onClick={() => { setTargetInput(''); setReadmeContent(''); setAttachedFileName(''); }}
+                className="px-2 py-1 text-xs text-[#78716c] hover:text-[#ef4444] transition-colors flex items-center gap-1 border border-[#e8e6e5] rounded hover:border-[#fecaca] bg-white"
+                title="전체 초기화"
+              >
+                <Trash2 className="w-3.5 h-3.5 text-[#ef4444]" />
+                초기화
+              </button>
+            )}
+          </div>
         </div>
 
-        {inputMode === 'url' ? (
-          <>
-            <div className="flex items-center gap-2.5 bg-white border border-[#e8e6e5] rounded-xl px-3.5 py-2 text-xs shadow-sm">
-              <span className="px-1.5 py-0.5 rounded bg-[#f4f4f5] text-[10px] text-[#78716c] font-mono font-bold">
-                ⌘K
-              </span>
-              <input 
-                type="text" 
-                value={targetInput}
-                onChange={(e) => setTargetInput(e.target.value)}
-                placeholder="Enter Target URL or Repository (e.g. travel, health, fin, shop)..." 
-                className="flex-1 bg-transparent text-xs text-[#0c0a09] font-mono focus:outline-none placeholder:text-[#a8a29e]"
+        {/* 1. 배포 웹 URL 입력란 */}
+        <div>
+          <div className="flex items-center justify-between mb-1.5 text-[11px]">
+            <span className="font-semibold text-[#0c0a09] flex items-center gap-1">
+              <Globe className="w-3.5 h-3.5 text-[#3ba6f1]" />
+              배포된 웹 서비스 URL (Live Web)
+            </span>
+            <span className="text-[#a8a29e] font-mono text-[10px]">선택 입력</span>
+          </div>
+          <div className="flex items-center gap-2.5 bg-[#fafaf9] border border-[#e8e6e5] rounded-lg px-3 py-2 text-xs">
+            <span className="px-1.5 py-0.5 rounded bg-[#f4f4f5] text-[10px] text-[#78716c] font-mono font-bold">
+              URL
+            </span>
+            <input 
+              type="text" 
+              value={targetInput}
+              onChange={(e) => setTargetInput(e.target.value)}
+              placeholder="https://your-service.com (실제 배포 화면, 푸터 약관, 쿠키 등 검사)..." 
+              className="flex-1 bg-transparent text-xs text-[#0c0a09] font-mono focus:outline-none placeholder:text-[#a8a29e]"
+            />
+          </div>
+        </div>
+
+        {/* 2. README / 아키텍처 명세서 입력란 */}
+        <div>
+          <div className="flex items-center justify-between mb-1.5 text-[11px]">
+            <span className="font-semibold text-[#0c0a09] flex items-center gap-1">
+              <FileText className="w-3.5 h-3.5 text-[#3ba6f1]" />
+              GitHub README / 아키텍처 명세서 (Markdown)
+            </span>
+            <span className="text-[#a8a29e] font-mono text-[10px]">선택 입력</span>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-12 gap-3">
+            {/* 드롭존 (4 cols) */}
+            <div 
+              onDragOver={(e) => e.preventDefault()}
+              onDrop={handleDropFile}
+              className="col-span-1 md:col-span-4 border-2 border-dashed border-[#e8e6e5] hover:border-[#3ba6f1] rounded-lg p-3 bg-[#fafaf9] flex flex-col items-center justify-center text-center transition-colors cursor-pointer relative min-h-[90px]"
+            >
+              <input
+                type="file"
+                accept=".md,.markdown,.txt"
+                onChange={handleFileUpload}
+                className="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
               />
-              <button
-                onClick={() => handleRunAudit()}
-                disabled={isScanning}
-                className="bg-[#0c0a09] hover:bg-[#1c1917] text-white px-4 py-1.5 rounded-full text-xs font-medium transition-colors disabled:opacity-50 flex items-center gap-1.5"
-              >
-                <Sparkles className="w-3.5 h-3.5 text-[#3ba6f1]" />
-                {isScanning ? 'AI Auditing...' : 'Run Audit'}
-              </button>
-            </div>
-
-            {/* Quick Sample Presets Chips */}
-            <div className="flex flex-wrap items-center gap-2 mt-2.5 text-[11px]">
-              <span className="text-[#a8a29e] font-mono">Quick Test:</span>
-              <button
-                onClick={() => handleSelectSample('https://github.com/sample/ai-health-advisor')}
-                className="px-2.5 py-0.5 rounded-full border border-[#e8e6e5] bg-white hover:border-[#3ba6f1] text-[#78716c] hover:text-[#0c0a09] transition-all font-mono"
-              >
-                🩺 헬스케어 AI
-              </button>
-              <button
-                onClick={() => handleSelectSample('https://github.com/sample/crypto-fin-trader')}
-                className="px-2.5 py-0.5 rounded-full border border-[#e8e6e5] bg-white hover:border-[#3ba6f1] text-[#78716c] hover:text-[#0c0a09] transition-all font-mono"
-              >
-                📈 핀테크 AI
-              </button>
-              <button
-                onClick={() => handleSelectSample('https://github.com/sample/ai-ecommerce-shop')}
-                className="px-2.5 py-0.5 rounded-full border border-[#e8e6e5] bg-white hover:border-[#3ba6f1] text-[#78716c] hover:text-[#0c0a09] transition-all font-mono"
-              >
-                🛍️ 이커머스 AI
-              </button>
-            </div>
-          </>
-        ) : (
-          /* README 파일 첨부 및 마크다운 분석 공간 */
-          <div className="bg-white border border-[#e8e6e5] rounded-xl p-3.5 shadow-sm space-y-3">
-            <div className="flex flex-wrap items-center justify-between gap-2 pb-2.5 border-b border-[#f0eeec]">
-              <div className="flex items-center gap-2">
-                <span className="text-xs font-bold text-[#0c0a09] flex items-center gap-1.5">
-                  <FileText className="w-3.5 h-3.5 text-[#3ba6f1]" />
-                  README / 아키텍처 명세서 업로드
-                </span>
-                <span className="text-[11px] text-[#78716c]">
-                  (배포 전 소스코드 기획 단계 사전 감사)
-                </span>
+              <UploadCloud className="w-5 h-5 text-[#3ba6f1] mb-1" />
+              <div className="text-[11px] font-medium text-[#0c0a09] mb-0.5">
+                README.md 드래그 또는 클릭
               </div>
-              <div className="flex items-center gap-2">
-                {readmeContent && (
-                  <button
-                    type="button"
-                    onClick={() => { setReadmeContent(''); setAttachedFileName(''); }}
-                    className="px-2 py-1 text-xs text-[#78716c] hover:text-[#ef4444] transition-colors flex items-center gap-1 border border-[#e8e6e5] rounded hover:border-[#fecaca] bg-white"
-                    title="초기화"
-                  >
-                    <Trash2 className="w-3.5 h-3.5 text-[#ef4444]" />
-                    초기화
-                  </button>
-                )}
+              <div className="text-[9px] text-[#a8a29e]">
+                .md, .txt 마크다운 파일 지원
               </div>
-            </div>
-
-            {/* Drag and Drop Zone + Textarea */}
-            <div className="grid grid-cols-1 md:grid-cols-12 gap-3">
-              {/* 파일 업로드 드롭존 (4 cols) */}
-              <div 
-                onDragOver={(e) => e.preventDefault()}
-                onDrop={handleDropFile}
-                className="col-span-1 md:col-span-4 border-2 border-dashed border-[#e8e6e5] hover:border-[#3ba6f1] rounded-lg p-3.5 bg-[#fafaf9] flex flex-col items-center justify-center text-center transition-colors cursor-pointer relative"
-              >
-                <input
-                  type="file"
-                  accept=".md,.markdown,.txt"
-                  onChange={handleFileUpload}
-                  className="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
-                />
-                <UploadCloud className="w-6 h-6 text-[#3ba6f1] mb-1.5" />
-                <div className="text-xs font-medium text-[#0c0a09] mb-0.5">
-                  README.md 파일 드래그 또는 클릭
+              {attachedFileName && (
+                <div className="mt-1.5 text-[10px] px-2 py-0.5 bg-white border border-[#bbf7d0] text-[#166534] rounded flex items-center gap-1 font-mono">
+                  <Check className="w-3 h-3 text-[#10b981]" />
+                  {attachedFileName}
                 </div>
-                <div className="text-[10px] text-[#a8a29e]">
-                  .md, .txt 마크다운 파일 지원
-                </div>
-                {attachedFileName && (
-                  <div className="mt-2 text-[11px] px-2 py-0.5 bg-white border border-[#bbf7d0] text-[#166534] rounded flex items-center gap-1 font-mono">
-                    <Check className="w-3 h-3 text-[#10b981]" />
-                    {attachedFileName}
-                  </div>
-                )}
-              </div>
-
-              {/* 마크다운 텍스트 직접 입력/확인 에디터 (8 cols) */}
-              <div className="col-span-1 md:col-span-8 flex flex-col">
-                <textarea
-                  value={readmeContent}
-                  onChange={(e) => setReadmeContent(e.target.value)}
-                  placeholder="README.md 내용을 직접 붙여넣거나 위의 드롭존에 파일을 첨부하세요... (API 연동 내역, 라이브러리, 데이터 처리 흐름 등)"
-                  rows={4}
-                  className="w-full h-24 p-2.5 bg-[#fafaf9] border border-[#e8e6e5] rounded-lg text-xs font-mono text-[#0c0a09] focus:outline-none focus:border-[#3ba6f1] resize-none leading-relaxed placeholder:text-[#a8a29e]"
-                />
-              </div>
+              )}
             </div>
 
-            {/* 하단 감사 실행 바 */}
-            <div className="flex items-center justify-between pt-1">
-              <div className="text-[11px] text-[#78716c] flex items-center gap-1.5">
-                <span className="w-1.5 h-1.5 rounded-full bg-[#10b981]" />
-                외부 라이브러리, 위치 좌표(GPS), AI(LLM) 사용 여부 자동 스캔
-              </div>
-              <button
-                onClick={() => handleRunAudit()}
-                disabled={isScanning || !readmeContent.trim()}
-                className="bg-[#0c0a09] hover:bg-[#1c1917] text-white px-5 py-2 rounded-full text-xs font-medium transition-colors disabled:opacity-40 flex items-center gap-1.5 shadow-sm"
-              >
-                <Sparkles className="w-3.5 h-3.5 text-[#3ba6f1]" />
-                {isScanning ? 'README 분석 중...' : 'Audit README (컴플라이언스 분석)'}
-              </button>
+            {/* 마크다운 텍스트 영역 (8 cols) */}
+            <div className="col-span-1 md:col-span-8 flex flex-col">
+              <textarea
+                value={readmeContent}
+                onChange={(e) => setReadmeContent(e.target.value)}
+                placeholder="README 내용을 붙여넣으세요... (연동 API, 라이브러리, 데이터 처리 흐름, LLM 사용 여부 등)"
+                rows={3}
+                className="w-full h-24 p-2.5 bg-[#fafaf9] border border-[#e8e6e5] rounded-lg text-xs font-mono text-[#0c0a09] focus:outline-none focus:border-[#3ba6f1] resize-none leading-relaxed placeholder:text-[#a8a29e]"
+              />
             </div>
           </div>
-        )}
+        </div>
+
+        {/* 하단 감사 실행 바 & 퀵 프리셋 */}
+        <div className="flex flex-wrap items-center justify-between pt-2 border-t border-[#f0eeec] gap-2">
+          {/* 퀵 테스트 칩 */}
+          <div className="flex flex-wrap items-center gap-2 text-[11px]">
+            <span className="text-[#a8a29e] font-mono">Quick Test:</span>
+            <button
+              onClick={() => handleSelectSample('https://github.com/sample/ai-health-advisor')}
+              className="px-2.5 py-0.5 rounded-full border border-[#e8e6e5] bg-white hover:border-[#3ba6f1] text-[#78716c] hover:text-[#0c0a09] transition-all font-mono"
+            >
+              헬스케어 AI
+            </button>
+            <button
+              onClick={() => handleSelectSample('https://github.com/sample/crypto-fin-trader')}
+              className="px-2.5 py-0.5 rounded-full border border-[#e8e6e5] bg-white hover:border-[#3ba6f1] text-[#78716c] hover:text-[#0c0a09] transition-all font-mono"
+            >
+              핀테크 AI
+            </button>
+            <button
+              onClick={() => handleSelectSample('https://github.com/sample/ai-ecommerce-shop')}
+              className="px-2.5 py-0.5 rounded-full border border-[#e8e6e5] bg-white hover:border-[#3ba6f1] text-[#78716c] hover:text-[#0c0a09] transition-all font-mono"
+            >
+              이커머스 AI
+            </button>
+          </div>
+
+          {/* 통합 감사 실행 버튼 */}
+          <button
+            onClick={() => handleRunAudit()}
+            disabled={isScanning || (!targetInput.trim() && !readmeContent.trim())}
+            className="bg-[#0c0a09] hover:bg-[#1c1917] text-white px-5 py-2 rounded-full text-xs font-medium transition-colors disabled:opacity-40 flex items-center gap-2 shadow-sm"
+          >
+            <Sparkles className="w-3.5 h-3.5 text-[#3ba6f1]" />
+            {isScanning
+              ? '컴플라이언스 교차 감사 중...'
+              : targetInput.trim() && readmeContent.trim()
+              ? '하이브리드 교차 감사 실행 (URL + README)'
+              : targetInput.trim()
+              ? '배포 웹 URL 감사 실행'
+              : readmeContent.trim()
+              ? 'README 명세 감사 실행'
+              : '감사 실행 (최소 1개 입력 필요)'}
+          </button>
+        </div>
       </div>
 
       {/* 3-Column Seline Terminal Layout */}
