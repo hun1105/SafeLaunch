@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { DEFAULT_ISSUES, getIssuesByTarget, PLAN_B_README_SAMPLE } from '@/lib/audit-data';
+import { DEFAULT_ISSUES, getIssuesByTarget } from '@/lib/audit-data';
 import { AuditIssue, RiskLevel, Jurisdiction } from '@/lib/types';
 import { 
   Sparkles, 
@@ -19,10 +19,9 @@ import {
 } from 'lucide-react';
 
 export default function Home() {
-  const defaultTarget = 'https://alternative-travel-destination.onrender.com/?trip=72a3915c360c';
-  const [issues, setIssues] = useState<AuditIssue[]>(() => getIssuesByTarget(defaultTarget));
+  const [issues, setIssues] = useState<AuditIssue[]>([]);
   const [selectedIndex, setSelectedIndex] = useState<number>(0);
-  const [targetInput, setTargetInput] = useState<string>(defaultTarget);
+  const [targetInput, setTargetInput] = useState<string>('');
   const [isScanning, setIsScanning] = useState<boolean>(false);
   const [applied, setApplied] = useState<boolean>(false);
   const [modalIssue, setModalIssue] = useState<AuditIssue | null>(null);
@@ -45,8 +44,6 @@ export default function Home() {
       const m = new URLSearchParams(window.location.search).get('mode');
       if (m === 'readme') {
         setInputMode('readme');
-        setReadmeContent(PLAN_B_README_SAMPLE);
-        setAttachedFileName('Plan_B_README.md (15.3 KB)');
       }
     }
   }, []);
@@ -58,11 +55,11 @@ export default function Home() {
   });
 
   // 현재 선택된 이슈 (필터 변경 시 유효성 보장)
-  const currentIssue = filteredIssues[selectedIndex] || filteredIssues[0] || issues[0];
+  const currentIssue = filteredIssues[selectedIndex] || filteredIssues[0] || null;
 
   // 선택된 관할 필터(전체/국내/글로벌)에 따른 동적 준수율 계산
   const calculateScore = () => {
-    if (filteredIssues.length === 0) return 100;
+    if (filteredIssues.length === 0) return 0;
     let score = 100;
     const critPenalty = jurisdictionFilter === 'ALL' ? 15 : 22;
     const warnPenalty = jurisdictionFilter === 'ALL' ? 8 : 12;
@@ -79,11 +76,17 @@ export default function Home() {
   const currentScore = calculateScore();
 
   const handleRunAudit = async (customTarget?: string, customReadme?: string) => {
+    const targetToScan = customTarget || targetInput;
+    const readmeToScan = customReadme !== undefined ? customReadme : readmeContent;
+
+    if (inputMode === 'url' && !targetToScan.trim()) return;
+    if (inputMode === 'readme' && !readmeToScan.trim()) return;
+
     setIsScanning(true);
     try {
       const payload = inputMode === 'readme'
-        ? { mode: 'readme', readmeContent: customReadme !== undefined ? customReadme : readmeContent }
-        : { mode: 'url', target: customTarget || targetInput };
+        ? { mode: 'readme', readmeContent: readmeToScan }
+        : { mode: 'url', target: targetToScan };
 
       const res = await fetch('/api/audit', {
         method: 'POST',
@@ -133,13 +136,8 @@ export default function Home() {
     reader.readAsText(file);
   };
 
-  const handleLoadPlanBReadme = () => {
-    setReadmeContent(PLAN_B_README_SAMPLE);
-    setAttachedFileName('Plan_B_README.md (실제 프로젝트)');
-    handleRunAudit(undefined, PLAN_B_README_SAMPLE);
-  };
-
   const handleApplySolution = () => {
+    if (!currentIssue) return;
     navigator.clipboard.writeText(currentIssue.solutionCode);
     setApplied(true);
     setTimeout(() => setApplied(false), 2500);
@@ -256,12 +254,6 @@ export default function Home() {
             <div className="flex flex-wrap items-center gap-2 mt-2.5 text-[11px]">
               <span className="text-[#a8a29e] font-mono">Quick Test:</span>
               <button
-                onClick={() => handleSelectSample('https://alternative-travel-destination.onrender.com/?trip=72a3915c360c')}
-                className="px-2.5 py-0.5 rounded-full border border-[#3ba6f1] bg-[#eff6ff] text-[#1e40af] font-medium transition-all font-mono shadow-xs"
-              >
-                ✈️ Plan B 여행 일정 (Live)
-              </button>
-              <button
                 onClick={() => handleSelectSample('https://github.com/sample/ai-health-advisor')}
                 className="px-2.5 py-0.5 rounded-full border border-[#e8e6e5] bg-white hover:border-[#3ba6f1] text-[#78716c] hover:text-[#0c0a09] transition-all font-mono"
               >
@@ -295,22 +287,15 @@ export default function Home() {
                 </span>
               </div>
               <div className="flex items-center gap-2">
-                <button
-                  type="button"
-                  onClick={handleLoadPlanBReadme}
-                  className="px-2.5 py-1 rounded bg-[#eff6ff] hover:bg-[#dbeafe] text-[#1e40af] text-[11px] font-medium transition-colors flex items-center gap-1 border border-[#bfdbfe]"
-                >
-                  <Sparkles className="w-3 h-3 text-[#3ba6f1]" />
-                  Plan B README 불러오기 (1-Click)
-                </button>
                 {readmeContent && (
                   <button
                     type="button"
                     onClick={() => { setReadmeContent(''); setAttachedFileName(''); }}
-                    className="p-1 text-[#a8a29e] hover:text-[#ef4444] transition-colors"
+                    className="px-2 py-1 text-xs text-[#78716c] hover:text-[#ef4444] transition-colors flex items-center gap-1 border border-[#e8e6e5] rounded hover:border-[#fecaca] bg-white"
                     title="초기화"
                   >
-                    <Trash2 className="w-3.5 h-3.5" />
+                    <Trash2 className="w-3.5 h-3.5 text-[#ef4444]" />
+                    초기화
                   </button>
                 )}
               </div>
@@ -420,190 +405,236 @@ export default function Home() {
               </button>
             </div>
 
-            <div className="space-y-2 max-h-[360px] overflow-y-auto pr-1.5 custom-scrollbar">
-              {filteredIssues.map((issue, idx) => {
-                const isSelected = currentIssue.id === issue.id;
-                const rawName = issue.koreanName || issue.lawName;
-                const [badgeText, ...rest] = rawName.includes(':') 
-                  ? rawName.split(':') 
-                  : [issue.jurisdiction === 'DOMESTIC' ? '국내 법령' : '글로벌 규제', rawName];
-                const detailTitle = rest.join(':').trim() || rawName;
+            {filteredIssues.length === 0 ? (
+              <div className="h-[360px] flex flex-col items-center justify-center text-center p-6 border border-dashed border-[#e8e6e5] rounded-lg bg-[#fafaf9]">
+                <div className="w-10 h-10 rounded-full bg-[#f4f4f5] flex items-center justify-center text-[#78716c] mb-3">
+                  <FileText className="w-5 h-5 text-[#a8a29e]" />
+                </div>
+                <div className="text-xs font-bold text-[#0c0a09] mb-1">감사 대기 상태</div>
+                <p className="text-[11px] text-[#78716c] leading-relaxed break-keep">
+                  URL을 입력하거나 README 문서를 등록하여 실시간 규제 감사를 실행하세요.
+                </p>
+              </div>
+            ) : (
+              <div className="space-y-2 max-h-[360px] overflow-y-auto pr-1.5 custom-scrollbar">
+                {filteredIssues.map((issue, idx) => {
+                  const isSelected = currentIssue?.id === issue.id;
+                  const rawName = issue.koreanName || issue.lawName;
+                  const [badgeText, ...rest] = rawName.includes(':') 
+                    ? rawName.split(':') 
+                    : [issue.jurisdiction === 'DOMESTIC' ? '국내 법령' : '글로벌 규제', rawName];
+                  const detailTitle = rest.join(':').trim() || rawName;
 
-                return (
-                  <div key={issue.id}>
-                    <div
-                      onClick={() => setSelectedIndex(idx)}
-                      className={`p-2.5 rounded-lg border cursor-pointer transition-all ${
-                        isSelected
-                          ? 'bg-[#fafaf9] border-[#e8e6e5] shadow-xs ring-1 ring-[#0c0a09]/10'
-                          : 'bg-white border-[#f0eeec] hover:bg-[#fafaf9] hover:border-[#e8e6e5]'
-                      }`}
-                    >
-                      {/* 상단: 법령 배지 & 관할/상태 */}
-                      <div className="flex items-center justify-between mb-1.5">
-                        <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded bg-[#f4f4f5] text-[#0c0a09] font-sans">
-                          {badgeText.trim()}
-                        </span>
-                        <div className="flex items-center gap-1.5 shrink-0">
-                          <span className="text-[9px] px-1 py-0.2 rounded bg-[#f4f4f5] text-[#78716c] font-sans">
-                            {issue.jurisdiction === 'DOMESTIC' ? '국내' : '글로벌'}
+                  return (
+                    <div key={issue.id}>
+                      <div
+                        onClick={() => setSelectedIndex(idx)}
+                        className={`p-2.5 rounded-lg border cursor-pointer transition-all ${
+                          isSelected
+                            ? 'bg-[#fafaf9] border-[#e8e6e5] shadow-xs ring-1 ring-[#0c0a09]/10'
+                            : 'bg-white border-[#f0eeec] hover:bg-[#fafaf9] hover:border-[#e8e6e5]'
+                        }`}
+                      >
+                        {/* 상단: 법령 배지 & 관할/상태 */}
+                        <div className="flex items-center justify-between mb-1.5">
+                          <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded bg-[#f4f4f5] text-[#0c0a09] font-sans">
+                            {badgeText.trim()}
                           </span>
-                          {getStatusDot(issue.status)}
+                          <div className="flex items-center gap-1.5 shrink-0">
+                            <span className="text-[9px] px-1 py-0.2 rounded bg-[#f4f4f5] text-[#78716c] font-sans">
+                              {issue.jurisdiction === 'DOMESTIC' ? '국내' : '글로벌'}
+                            </span>
+                            {getStatusDot(issue.status)}
+                          </div>
+                        </div>
+
+                        {/* 하단: 핵심 내용 (말줄임 없이 전문 2줄 줄바꿈) */}
+                        <div className="flex items-start gap-1.5">
+                          <ChevronRight className={`w-3.5 h-3.5 shrink-0 mt-0.5 transition-transform ${isSelected ? 'text-[#3ba6f1]' : 'text-[#a8a29e]'}`} />
+                          <span className={`text-xs break-keep leading-snug font-sans ${isSelected ? 'text-[#0c0a09] font-semibold' : 'text-[#57534e]'}`}>
+                            {detailTitle}
+                          </span>
                         </div>
                       </div>
 
-                      {/* 하단: 핵심 내용 (말줄임 없이 전문 2줄 줄바꿈) */}
-                      <div className="flex items-start gap-1.5">
-                        <ChevronRight className={`w-3.5 h-3.5 shrink-0 mt-0.5 transition-transform ${isSelected ? 'text-[#3ba6f1]' : 'text-[#a8a29e]'}`} />
-                        <span className={`text-xs break-keep leading-snug font-sans ${isSelected ? 'text-[#0c0a09] font-semibold' : 'text-[#57534e]'}`}>
-                          {detailTitle}
-                        </span>
-                      </div>
+                      {/* 조건부 모호함 핀셋 버튼 */}
+                      {issue.isAmbiguous && (
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setModalIssue(issue);
+                          }}
+                          className="mt-1 ml-3 w-[calc(100%-0.75rem)] flex items-center justify-center gap-1 bg-[#fffbeb] border border-[#fef3c7] hover:bg-[#fef3c7] text-[#b45309] text-[10px] py-1 rounded transition-colors font-sans"
+                        >
+                          <HelpCircle className="w-3 h-3" />
+                          판별 필요 (1문1답 확인)
+                        </button>
+                      )}
                     </div>
-
-                    {/* 조건부 모호함 핀셋 버튼 */}
-                    {issue.isAmbiguous && (
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setModalIssue(issue);
-                        }}
-                        className="mt-1 ml-3 w-[calc(100%-0.75rem)] flex items-center justify-center gap-1 bg-[#fffbeb] border border-[#fef3c7] hover:bg-[#fef3c7] text-[#b45309] text-[10px] py-1 rounded transition-colors font-sans"
-                      >
-                        <HelpCircle className="w-3 h-3" />
-                        판별 필요 (1문1답 확인)
-                      </button>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
+                  );
+                })}
+              </div>
+            )}
           </div>
         </div>
 
         {/* 2단: 2. Problem Diagnosis (Diff Inspector) (6 cols) */}
         <div className="col-span-12 lg:col-span-6 bg-white border border-[#e8e6e5] rounded-[10px] p-4 shadow-[0_4px_16px_rgba(0,0,0,0.05)] flex flex-col justify-between">
-          <div>
-            <div className="flex items-center justify-between text-xl font-bold text-[#0c0a09] tracking-tight mb-2.5">
-              <span>2. Problem Diagnosis</span>
-              <span className="text-[10px] px-2 py-0.5 rounded bg-[#f4f4f5] text-[#0c0a09] font-mono">
-                {currentIssue.jurisdiction === 'DOMESTIC' ? '대한민국 법령' : '글로벌 규제'}
-              </span>
+          {!currentIssue ? (
+            <div className="h-full min-h-[380px] flex flex-col items-center justify-center text-center p-8 border border-dashed border-[#e8e6e5] rounded-lg bg-[#fafaf9]">
+              <div className="w-12 h-12 rounded-full bg-[#eff6ff] flex items-center justify-center text-[#3ba6f1] mb-3">
+                <Sparkles className="w-6 h-6" />
+              </div>
+              <div className="text-sm font-bold text-[#0c0a09] mb-1">규제 진단 대기 중</div>
+              <p className="text-xs text-[#78716c] max-w-sm leading-relaxed break-keep">
+                감사를 실행하면 위반 사유(RISK)와 안전 준수 기준(SAFE)을 자연어로 명확하게 대조 진단합니다.
+              </p>
             </div>
+          ) : (
+            <>
+              <div>
+                <div className="flex items-center justify-between text-xl font-bold text-[#0c0a09] tracking-tight mb-2.5">
+                  <span>2. Problem Diagnosis</span>
+                  <span className="text-[10px] px-2 py-0.5 rounded bg-[#f4f4f5] text-[#0c0a09] font-mono">
+                    {currentIssue.jurisdiction === 'DOMESTIC' ? '대한민국 법령' : '글로벌 규제'}
+                  </span>
+                </div>
 
-            <div className="font-bold text-sm text-[#0c0a09] mb-1">
-              {currentIssue.problemTitle}
-            </div>
-            <p className="text-[12px] text-[#78716c] leading-relaxed mb-3">
-              {currentIssue.problemDesc}
-            </p>
+                <div className="font-bold text-sm text-[#0c0a09] mb-1">
+                  {currentIssue.problemTitle}
+                </div>
+                <p className="text-[12px] text-[#78716c] leading-relaxed mb-3">
+                  {currentIssue.problemDesc}
+                </p>
 
-            {/* 2단: 자연어 기반 법률 분석 대조 (위반 사유 vs 준수 기준) */}
-            <div className="grid grid-cols-2 gap-3 text-xs">
-              {/* 위반 사유 (RISK) */}
-              <div className="border border-[#fecaca] bg-[#fef2f2]/70 rounded-lg p-3 flex flex-col justify-between">
-                <div>
-                  <div className="text-[#991b1b] font-bold pb-1.5 mb-2 border-b border-[#fecaca] flex items-center justify-between">
-                    <span className="flex items-center gap-1.5">
-                      <X className="w-3.5 h-3.5 text-[#ef4444]" />
-                      위반 사유
-                    </span>
-                    <span className="text-[9px] px-1.5 py-0.5 bg-[#fee2e2] text-[#b91c1c] font-semibold rounded">RISK</span>
+                {/* 2단: 자연어 기반 법률 분석 대조 (위반 사유 vs 준수 기준) */}
+                <div className="grid grid-cols-2 gap-3 text-xs">
+                  {/* 위반 사유 (RISK) */}
+                  <div className="border border-[#fecaca] bg-[#fef2f2]/70 rounded-lg p-3 flex flex-col justify-between">
+                    <div>
+                      <div className="text-[#991b1b] font-bold pb-1.5 mb-2 border-b border-[#fecaca] flex items-center justify-between">
+                        <span className="flex items-center gap-1.5">
+                          <X className="w-3.5 h-3.5 text-[#ef4444]" />
+                          위반 사유
+                        </span>
+                        <span className="text-[9px] px-1.5 py-0.5 bg-[#fee2e2] text-[#b91c1c] font-semibold rounded">RISK</span>
+                      </div>
+                      <p className="text-[#991b1b] text-[12px] leading-relaxed font-sans">
+                        {currentIssue.wrongReason || currentIssue.problemDesc}
+                      </p>
+                    </div>
                   </div>
-                  <p className="text-[#991b1b] text-[12px] leading-relaxed font-sans">
-                    {currentIssue.wrongReason || currentIssue.problemDesc}
-                  </p>
+
+                  {/* 준수 기준 (SAFE) */}
+                  <div className="border border-[#bbf7d0] bg-[#f0fdf4]/70 rounded-lg p-3 flex flex-col justify-between">
+                    <div>
+                      <div className="text-[#166534] font-bold pb-1.5 mb-2 border-b border-[#bbf7d0] flex items-center justify-between">
+                        <span className="flex items-center gap-1.5">
+                          <Check className="w-3.5 h-3.5 text-[#10b981]" />
+                          준수 기준
+                        </span>
+                        <span className="text-[9px] px-1.5 py-0.5 bg-[#dcfce7] text-[#15803d] font-semibold rounded">SAFE</span>
+                      </div>
+                      <p className="text-[#166534] text-[12px] leading-relaxed font-sans">
+                        {currentIssue.correctReason || (currentIssue.solutionDesc ? currentIssue.solutionDesc.join(' ') : currentIssue.solutionTitle)}
+                      </p>
+                    </div>
+                  </div>
                 </div>
               </div>
 
-              {/* 준수 기준 (SAFE) */}
-              <div className="border border-[#bbf7d0] bg-[#f0fdf4]/70 rounded-lg p-3 flex flex-col justify-between">
-                <div>
-                  <div className="text-[#166534] font-bold pb-1.5 mb-2 border-b border-[#bbf7d0] flex items-center justify-between">
-                    <span className="flex items-center gap-1.5">
-                      <Check className="w-3.5 h-3.5 text-[#10b981]" />
-                      준수 기준
-                    </span>
-                    <span className="text-[9px] px-1.5 py-0.5 bg-[#dcfce7] text-[#15803d] font-semibold rounded">SAFE</span>
-                  </div>
-                  <p className="text-[#166534] text-[12px] leading-relaxed font-sans">
-                    {currentIssue.correctReason || (currentIssue.solutionDesc ? currentIssue.solutionDesc.join(' ') : currentIssue.solutionTitle)}
-                  </p>
-                </div>
+              <div className="mt-3 p-2.5 bg-[#fafaf9] border border-[#e8e6e5] rounded-lg text-[11px] text-[#78716c]">
+                <strong>법적 제재 수위:</strong>{' '}
+                <span className="text-[#0c0a09] font-medium">{currentIssue.penaltyText}</span>
               </div>
-            </div>
-          </div>
-
-          <div className="mt-3 p-2.5 bg-[#fafaf9] border border-[#e8e6e5] rounded-lg text-[11px] text-[#78716c]">
-            <strong>법적 제재 수위:</strong>{' '}
-            <span className="text-[#0c0a09] font-medium">{currentIssue.penaltyText}</span>
-          </div>
+            </>
+          )}
         </div>
 
         {/* 3단: 3. Resolution & Telemetry (3 cols) */}
         <div className="col-span-12 lg:col-span-3 bg-white border border-[#e8e6e5] rounded-[10px] p-4 shadow-[0_4px_16px_rgba(0,0,0,0.05)] flex flex-col justify-between">
-          <div>
-            <div className="text-xl font-bold text-[#0c0a09] tracking-tight mb-2">
-              3. Resolution
+          {!currentIssue ? (
+            <div className="h-full min-h-[380px] flex flex-col items-center justify-center text-center p-6 border border-dashed border-[#e8e6e5] rounded-lg bg-[#fafaf9]">
+              <div className="w-10 h-10 rounded-full bg-[#f4f4f5] flex items-center justify-center text-[#78716c] mb-3">
+                <Check className="w-5 h-5 text-[#a8a29e]" />
+              </div>
+              <div className="text-xs font-bold text-[#0c0a09] mb-1">해결 방안 대기</div>
+              <p className="text-[11px] text-[#78716c] leading-relaxed break-keep mb-6">
+                감사 완료 후 즉시 복사 가능한 해결 코드와 원클릭 규제 조치안이 제공됩니다.
+              </p>
+              <button 
+                disabled
+                className="w-full py-2.5 rounded-full text-xs font-medium bg-[#f4f4f5] text-[#a8a29e] cursor-not-allowed"
+              >
+                감사 실행 대기 중
+              </button>
             </div>
+          ) : (
+            <>
+              <div>
+                <div className="text-xl font-bold text-[#0c0a09] tracking-tight mb-2">
+                  3. Resolution
+                </div>
 
-            {/* Circular Gauge */}
-            <div className="flex flex-col items-center justify-center py-3">
-              <div className="relative w-28 h-28 flex items-center justify-center">
-                <svg className="w-full h-full transform -rotate-90" viewBox="0 0 100 100">
-                  <circle cx="50" cy="50" r="40" stroke="#e8e6e5" strokeWidth="7" fill="none"/>
-                  <circle 
-                    cx="50" 
-                    cy="50" 
-                    r="40" 
-                    stroke={currentScore >= 70 ? '#10b981' : currentScore >= 50 ? '#3ba6f1' : '#ef4444'} 
-                    strokeWidth="7" 
-                    fill="none"
-                    strokeDasharray="251.2" 
-                    strokeDashoffset={251.2 - (251.2 * currentScore) / 100}
-                    strokeLinecap="round"
-                    className="transition-all duration-500"
-                  />
-                </svg>
-                <div className="absolute text-center">
-                  <div className="text-2xl font-bold tracking-tight text-[#0c0a09]">
-                    {currentScore}<span className="text-xs text-[#78716c] font-normal">/100</span>
+                {/* Circular Gauge */}
+                <div className="flex flex-col items-center justify-center py-3">
+                  <div className="relative w-28 h-28 flex items-center justify-center">
+                    <svg className="w-full h-full transform -rotate-90" viewBox="0 0 100 100">
+                      <circle cx="50" cy="50" r="40" stroke="#e8e6e5" strokeWidth="7" fill="none"/>
+                      <circle 
+                        cx="50" 
+                        cy="50" 
+                        r="40" 
+                        stroke={currentScore >= 70 ? '#10b981' : currentScore >= 50 ? '#3ba6f1' : '#ef4444'} 
+                        strokeWidth="7" 
+                        fill="none"
+                        strokeDasharray="251.2" 
+                        strokeDashoffset={251.2 - (251.2 * currentScore) / 100}
+                        strokeLinecap="round"
+                        className="transition-all duration-500"
+                      />
+                    </svg>
+                    <div className="absolute text-center">
+                      <div className="text-2xl font-bold tracking-tight text-[#0c0a09]">
+                        {currentScore}<span className="text-xs text-[#78716c] font-normal">/100</span>
+                      </div>
+                      <div className="text-[11px] text-[#78716c] font-medium mt-0.5">
+                        준수율
+                      </div>
+                    </div>
                   </div>
-                  <div className="text-[11px] text-[#78716c] font-medium mt-0.5">
-                    준수율
+                </div>
+
+                {/* 해결 방안 */}
+                <div className="space-y-1.5 mb-3.5">
+                  <div className="text-[11px] font-bold text-[#78716c] tracking-wider">
+                    해결 방안
+                  </div>
+                  <div className="space-y-1 text-xs text-[#44403c] leading-relaxed">
+                    {currentIssue.solutionDesc?.slice(0, 2).map((desc, i) => (
+                      <div key={i} className="flex items-start gap-1.5">
+                        <span className="text-[#3ba6f1] font-bold shrink-0">•</span>
+                        <span>{desc}</span>
+                      </div>
+                    ))}
                   </div>
                 </div>
               </div>
-            </div>
 
-            {/* 해결 방안 */}
-            <div className="space-y-1.5 mb-3.5">
-              <div className="text-[11px] font-bold text-[#78716c] tracking-wider">
-                해결 방안
-              </div>
-              <div className="space-y-1 text-xs text-[#44403c] leading-relaxed">
-                {currentIssue.solutionDesc?.slice(0, 2).map((desc, i) => (
-                  <div key={i} className="flex items-start gap-1.5">
-                    <span className="text-[#3ba6f1] font-bold shrink-0">•</span>
-                    <span>{desc}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-
-          {/* Seline Signature Cyan Pill Button (#3ba6f1) */}
-          <button 
-            onClick={handleApplySolution}
-            className={`w-full py-2.5 rounded-full text-xs font-medium transition-colors shadow-sm flex items-center justify-center gap-1.5 ${
-              applied
-                ? 'bg-[#0c0a09] text-white'
-                : 'bg-[#3ba6f1] hover:bg-[#3398e1] text-white'
-            }`}
-          >
-            {applied ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
-            {applied ? 'Solution Applied & Copied!' : 'Apply Solution & Export'}
-          </button>
+              {/* Seline Signature Cyan Pill Button (#3ba6f1) */}
+              <button 
+                onClick={handleApplySolution}
+                className={`w-full py-2.5 rounded-full text-xs font-medium transition-colors shadow-sm flex items-center justify-center gap-1.5 ${
+                  applied
+                    ? 'bg-[#0c0a09] text-white'
+                    : 'bg-[#3ba6f1] hover:bg-[#3398e1] text-white'
+                }`}
+              >
+                {applied ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
+                {applied ? 'Solution Applied & Copied!' : 'Apply Solution & Export'}
+              </button>
+            </>
+          )}
         </div>
 
       </div>

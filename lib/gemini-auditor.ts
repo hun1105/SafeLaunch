@@ -224,26 +224,7 @@ export async function auditReadmeWithGemini(
   const startTime = Date.now();
   const trimmed = (readmeContent || '').trim();
 
-  // 1. Plan B 실제 프로젝트 감지 시 결정론적 10대 전수 규제 보고서 즉시 반환
-  if (
-    trimmed.includes('Plan B') ||
-    trimmed.includes('KorService') ||
-    trimmed.includes('TMAP') ||
-    trimmed.includes('한국관광공사') ||
-    trimmed.includes('alternative-travel-destination')
-  ) {
-    const issues = getIssuesByTarget('trip travel');
-    return {
-      target: 'README.md (Plan B Architecture Spec)',
-      overallScore: 45,
-      grade: 'GRADE C (HIGH RISK)',
-      latencyMs: 35,
-      isLiveAi: false,
-      issues,
-    };
-  }
-
-  // 2. 유효한 Gemini API 키가 있는 경우 Gemini 3.6 Flash 호출
+  // 유효한 Gemini API 키가 있는 경우 Gemini 3.6 Flash 실시간 심층 감사 호출
   if (apiKey && trimmed.length > 20) {
     try {
       const prompt = `

@@ -382,7 +382,7 @@ if (daysUntilRenewal === 7) sendRenewalNoticeEmail(user.email);`,
   }
 ];
 
-// 5. 여행 및 위치기반 AI 프리셋 (Plan B 여행 일정 등)
+// 5. 여행 및 위치기반 AI 프리셋 (일반 여행 및 위치기반 서비스)
 export const TRAVEL_ISSUES: AuditIssue[] = [
   {
     id: 'location-9',
@@ -424,10 +424,10 @@ export const LOCATION_TERMS = {
     problemTitle: '사이트 하단 개인정보처리방침 및 이용약관 링크 누락',
     problemDesc: '개인정보보호법 제30조에 따라 이용자의 여행 계획, 검색 기록, 선호도를 처리하는 웹 서비스는 반드시 첫 화면(푸터)에 개인정보 처리방침을 상시 게재해야 합니다. 현재 사이트 하단에 법적 고지가 전무합니다.',
     wrongReason: '웹 서비스 첫 화면(푸터)에 사업자/개발팀 식별 정보, 이용약관, 개인정보처리방침 링크가 일체 없어, 방문자가 서비스 제공 주체를 확인할 수 없고 정보주체 권리 행사 창구가 없어 개인정보보호법 제30조 위반에 해당합니다.',
-    correctReason: '웹사이트 최하단 푸터에 "Plan B 개발팀" 명칭과 문의 이메일을 기재하고, 수집하는 비식별 여행 데이터의 처리 목적과 파기 절차를 담은 개인정보처리방침 팝업을 연동하면 필수 법정 고시 요건을 100% 충족합니다.',
+    correctReason: '웹사이트 최하단 푸터에 서비스 개발팀 명칭과 문의 이메일을 기재하고, 수집하는 비식별 여행 데이터의 처리 목적과 파기 절차를 담은 개인정보처리방침 팝업을 연동하면 필수 법정 고시 요건을 100% 충족합니다.',
     offendingCode: `// components/Footer.tsx
 <footer>
-  <p>© 2026 Plan B. All rights reserved.</p>
+  <p>© 2026 TravelService. All rights reserved.</p>
 </footer>`,
     penaltyText: '개인정보보호법 제75조: 1천만 원 이하 과태료 및 시정명령',
     solutionTitle: '개인정보처리방침 및 여행 서비스 표준 푸터 컴포넌트 삽입',
@@ -479,13 +479,13 @@ export const THIRD_PARTY_TERMS = { trustee: "SK텔레콤(TMap)", purpose: "경�
     problemTitle: '온라인 웹 서비스의 기본 신원(개발 주체) 표시 미흡',
     problemDesc: '전자상거래 등에서의 소비자보호에 관한 법률 제10조에 따라 온라인에서 정보를 제공하는 서비스는 이용자가 신뢰할 수 있도록 운영 주체 식별 정보를 표기해야 합니다.',
     wrongReason: '서비스 제공자의 상호, 대표자명, 연락처 등이 일체 표시되지 않아 서비스 장애나 피해 발생 시 이용자가 법적 구제를 요청할 창구가 차단되어 있습니다.',
-    correctReason: '하단 푸터에 "Plan B 팀(공모전 출품작)", 대표 이메일, GitHub 저장소 링크를 기재함으로써 비상업적 공모전 프로젝트의 식별 의무를 충족할 수 있습니다.',
+    correctReason: '하단 푸터에 "프로젝트 개발팀", 대표 이메일, GitHub 저장소 링크를 기재함으로써 비상업적 공모전 프로젝트의 식별 의무를 충족할 수 있습니다.',
     offendingCode: `// footer without developer identity`,
     penaltyText: '전자상거래법 제45조: 500만 원 이하 과태료',
     solutionTitle: '프로젝트 운영 주체 및 문의처 투명 공개',
     solutionDesc: ['1) 푸터에 팀명 및 공식 문의 이메일 기재'],
     solutionCode: `// footer/contact.ts
-export const TEAM_INFO = { team: "Plan B Project", email: "contact@planb.dev" };`,
+export const TEAM_INFO = { team: "Travel App Project", email: "contact@project.dev" };`,
     isAmbiguous: false
   },
   {
@@ -525,7 +525,7 @@ export function getSafeAffiliateLink(hotelUrl: string) {
     problemTitle: '공공데이터 활용 및 저작권법상 출처 명시 준수 여부',
     problemDesc: '한국관광공사 TourAPI 4.0 및 기상청 공공데이터를 활용할 경우 공공누리 제1유형(출처표시 조건 자유이용)에 따라 출처를 적법하게 표시해야 합니다.',
     wrongReason: '공공데이터 포털에서 제공받은 관광지 및 기상 데이터를 활용하면서 출처를 누락할 경우 저작권법 제37조(출처의 명시) 위반 및 공공데이터 라이선스 취소 사유가 됩니다.',
-    correctReason: 'Plan B 기획서 및 데이터 구조상 한국관광공사 TourAPI 콘텐츠 ID와 공공데이터 출처를 시스템에 유지하고 있으므로, 하단에 출처 배지만 부착하면 완벽히 적법합니다.',
+    correctReason: '본 서비스 기획서 및 데이터 구조상 한국관광공사 TourAPI 콘텐츠 ID와 공공데이터 출처를 시스템에 유지하고 있으므로, 하단에 출처 배지만 부착하면 완벽히 적법합니다.',
     offendingCode: `// clean public data pipeline`,
     penaltyText: '해당 없음 (Clean: 공공데이터 라이선스 적법)',
     solutionTitle: '공공누리 제1유형 출처 배지 상시 노출',
@@ -544,7 +544,7 @@ export const DATA_ATTRIBUTION = "출처: 한국관광공사 TourAPI (공공누�
     problemTitle: '외부 크롤링 기반 AI(LLM) 오추정 vs 결정론적 알고리즘 판별',
     problemDesc: '외부 크롤러는 웹 화면의 "돌발 대체 일정 추천" 문구만 보고 백엔드에서 OpenAI 등 서드파티 LLM을 호출하는 것으로 과추정하여 EU AI Act 위반으로 오진할 위험이 있습니다. 실제 소스코드 상 결정론적 알고리즘인지 확인해야 합니다.',
     wrongReason: '(위반 가정 시) 만약 백엔드에서 OpenAI/Claude 등 제3자 LLM을 직접 호출하면서도 사용자 입력(선호도, 예산)을 미국 서버로 전송한다는 사실과 AI 생성물임을 고지하지 않았다면 EU AI Act 제50조 및 OpenAI API 약관 위반에 해당합니다.',
-    correctReason: '(실제 코드 확인 준수) Plan B의 실제 소스코드는 한국관광공사 TourAPI, 기상청, TMap, 서울시 실시간 도시데이터 기반의 [결정론적 점수 알고리즘]을 사용하므로 LLM 규제 대상이 아니며, 공공누리(KOGL) 출처 표기만으로 완벽히 적법합니다.',
+    correctReason: '(실제 코드 확인 준수) 본 서비스의 실제 소스코드는 한국관광공사 TourAPI, 기상청, TMap, 서울시 실시간 도시데이터 기반의 [결정론적 점수 알고리즘]을 사용하므로 LLM 규제 대상이 아니며, 공공누리(KOGL) 출처 표기만으로 완벽히 적법합니다.',
     offendingCode: `// [외부 크롤러의 가상 오추정 코드]
 async function fetchAIItinerary(userPreferences) {
   return await openai.chat.completions.create({ ... });
@@ -562,7 +562,7 @@ export const DATA_ATTRIBUTION = {
   engineType: "Deterministic Heuristic Scoring Engine (Zero-LLM)"
 };`,
     isAmbiguous: true,
-    clarificationQuestion: 'Plan B의 대체 일정 추천 엔진은 어떤 기술 아키텍처로 구현되어 있습니까?',
+    clarificationQuestion: '해당 서비스의 대체 일정 추천 엔진은 어떤 기술 아키텍처로 구현되어 있습니까?',
     clarificationOptions: [
       {
         label: '공공데이터(TourAPI, 기상청, TMap) 기반 결정론적 규칙 알고리즘 (실제 소스코드 기준)',
@@ -624,7 +624,7 @@ export const PAYMENT_ENGINE = "Lemon Squeezy MoR (Tax Compliant)";`,
     problemTitle: '기상 악화 및 실제 매장 폐업/통제 상황에 대한 플랫폼 면책 요건',
     problemDesc: '알고리즘이 추천한 장소가 갑작스러운 기상 이변이나 공사로 통제되어 여행객이 손실을 입었을 때 플랫폼의 책임을 방어하는 표준 면책 조항입니다.',
     wrongReason: '현장 변동(갑작스러운 폭우, 도로 파손, 폐업)으로 인한 이용자의 피해에 대해 플랫폼의 귀책사유 없음을 사전에 고지하지 않으면 손해배상 분쟁에 휘말릴 수 있습니다.',
-    correctReason: 'Plan B는 기상청 초단기실황 API 및 서울시 실시간 데이터를 연동하며, "현장 기상 및 영업 상황에 따라 차이가 있을 수 있으므로 방문 전 유선 확인 요망" 면책 조항을 두어 법적 책임을 완벽히 방어합니다.',
+    correctReason: '본 서비스는 기상청 초단기실황 API 및 실시간 데이터를 연동하며, "현장 기상 및 영업 상황에 따라 차이가 있을 수 있으므로 방문 전 유선 확인 요망" 면책 조항을 두어 법적 책임을 완벽히 방어합니다.',
     offendingCode: `// clean disclaimer implementation`,
     penaltyText: '해당 없음 (Clean: Safe Harbor 면책 완료)',
     solutionTitle: '실시간 여행 안내 Safe Harbor 면책 문구 유지',
@@ -654,21 +654,3 @@ export function getIssuesByTarget(target: string): AuditIssue[] {
 }
 
 export const DEFAULT_ISSUES = SAAS_ISSUES;
-
-export const PLAN_B_README_SAMPLE = `# Plan B - 서울 여행지 대체 추천 프로젝트 관광 API 모듈
-
-웹 서비스 구현 전에 한국관광공사 국문 관광정보 OpenAPI (TourAPI 4.0) 연결 및 기상청 날씨, TMap 보행자 경로 안내를 검증하는 패키지입니다.
-
-## 아키텍처 및 외부 연동 API
-- 한국관광공사 국문 관광정보 OpenAPI (KorService2, 공공누리 제1유형 출처표시 필수)
-- 기상청 단기예보 및 초단기실황 API (KMA_SERVICE_KEY)
-- SK open API TMAP 보행자 경로 안내 (TMAP_APP_KEY, 사용자 GPS 좌표 기반 소요시간 계산)
-- 서울시 실시간 도시데이터 (장소 혼잡도 실시간 수집)
-
-## 추천 알고리즘 방식
-- 외부 OpenAI / Claude 등 LLM(생성형 AI)을 일체 호출하지 않음
-- 공공데이터포털 실시간 응답값을 가중치 계산식으로 점수화하는 100% 결정론적 룰 알고리즘 (Zero-LLM)
-
-## 배포 인프라 및 운영 환경
-- Render.com 클라우드 호스팅 (미국 리전)
-- 비상업적 공모전 출품 프로토타입 (유료 결제 기능 없음, 외부 아웃링크 연동)`;
