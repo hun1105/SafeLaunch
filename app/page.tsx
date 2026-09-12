@@ -101,11 +101,6 @@ export default function Home() {
     }
   };
 
-  const handleSelectSample = (sampleUrl: string) => {
-    setTargetInput(sampleUrl);
-    handleRunAudit(sampleUrl, undefined);
-  };
-
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -309,29 +304,12 @@ export default function Home() {
           </div>
         </div>
 
-        {/* 하단 감사 실행 바 & 퀵 프리셋 */}
+        {/* 하단 감사 실행 바 */}
         <div className="flex flex-wrap items-center justify-between pt-2 border-t border-[#f0eeec] gap-2">
-          {/* 퀵 테스트 칩 */}
-          <div className="flex flex-wrap items-center gap-2 text-[11px]">
-            <span className="text-[#a8a29e] font-mono">Quick Test:</span>
-            <button
-              onClick={() => handleSelectSample('https://github.com/sample/ai-health-advisor')}
-              className="px-2.5 py-0.5 rounded-full border border-[#e8e6e5] bg-white hover:border-[#3ba6f1] text-[#78716c] hover:text-[#0c0a09] transition-all font-mono"
-            >
-              헬스케어 AI
-            </button>
-            <button
-              onClick={() => handleSelectSample('https://github.com/sample/crypto-fin-trader')}
-              className="px-2.5 py-0.5 rounded-full border border-[#e8e6e5] bg-white hover:border-[#3ba6f1] text-[#78716c] hover:text-[#0c0a09] transition-all font-mono"
-            >
-              핀테크 AI
-            </button>
-            <button
-              onClick={() => handleSelectSample('https://github.com/sample/ai-ecommerce-shop')}
-              className="px-2.5 py-0.5 rounded-full border border-[#e8e6e5] bg-white hover:border-[#3ba6f1] text-[#78716c] hover:text-[#0c0a09] transition-all font-mono"
-            >
-              이커머스 AI
-            </button>
+          {/* 하단 상태 안내 문구 */}
+          <div className="text-[11px] text-[#78716c] flex items-center gap-1.5 font-sans">
+            <span className="w-1.5 h-1.5 rounded-full bg-[#10b981]" />
+            실제 배포 도메인 또는 마크다운 기획서를 분석하여 전수 규제를 진단합니다.
           </div>
 
           {/* 통합 감사 실행 버튼 */}
