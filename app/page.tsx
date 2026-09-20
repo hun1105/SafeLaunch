@@ -189,11 +189,10 @@ export default function Home() {
 
       {/* Seline Unified Target Workspace (URL + README 동시 지원) */}
       <div className="my-4 bg-white border border-[#e8e6e5] rounded-xl p-3.5 shadow-sm space-y-3">
-        {/* 상단 안내 & 상태 배지 */}
+        {/* 상단 안내 */}
         <div className="flex flex-wrap items-center justify-between gap-2 pb-2.5 border-b border-[#f0eeec]">
           <div className="flex items-center gap-2">
-            <span className="text-xs font-bold text-[#0c0a09] flex items-center gap-1.5">
-              <Sparkles className="w-3.5 h-3.5 text-[#3ba6f1]" />
+            <span className="text-xs font-bold text-[#0c0a09]">
               통합 컴플라이언스 대상 입력 (Dual-Source Workspace)
             </span>
             <span className="text-[11px] text-[#78716c]">
@@ -202,20 +201,6 @@ export default function Home() {
           </div>
 
           <div className="flex items-center gap-2">
-            {targetInput.trim() && readmeContent.trim() ? (
-              <span className="px-2 py-0.5 rounded-full bg-[#eff6ff] text-[#1e40af] border border-[#bfdbfe] text-[10px] font-mono font-medium">
-                하이브리드 교차 검증 활성 (정밀도 극대화)
-              </span>
-            ) : targetInput.trim() ? (
-              <span className="px-2 py-0.5 rounded-full bg-[#f4f4f5] text-[#0c0a09] border border-[#e8e6e5] text-[10px] font-mono">
-                웹 라이브 단독 모드
-              </span>
-            ) : readmeContent.trim() ? (
-              <span className="px-2 py-0.5 rounded-full bg-[#f4f4f5] text-[#0c0a09] border border-[#e8e6e5] text-[10px] font-mono">
-                README 기획서 단독 모드
-              </span>
-            ) : null}
-
             {(targetInput || readmeContent) && (
               <button
                 type="button"
