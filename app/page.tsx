@@ -169,9 +169,6 @@ export default function Home() {
           <span className="font-medium tracking-tight text-sm text-[#0c0a09]">
             SAFELAUNCH // AUDIT TERMINAL
           </span>
-          <span className="px-2 py-0.5 rounded-full bg-[#f0fdf4] border border-[#bbf7d0] text-[#166534] text-[10px] font-mono font-medium">
-            Live system latency 12ms
-          </span>
         </div>
 
         {/* Overview 단일 항목만 유지 (불필요한 탭 제거 완료) */}
